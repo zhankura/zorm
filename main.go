@@ -113,8 +113,8 @@ func (s *DB) Order(value interface{}, reorder ...bool) *DB {
 	return s.clone().search.Order(value, reorder...).db
 }
 
-func (s *DB) Select(query interface{}, args ...interface{}) *DB {
-	return s.clone().search.Select(query, args...).db
+func (s *DB) Select(query string) *DB {
+	return s.clone().search.Select(query).db
 }
 
 func (s *DB) Omit(columns ...string) *DB {
