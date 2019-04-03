@@ -60,6 +60,15 @@ func (scope *Scope) AddToVars(value interface{}) string {
 	return "$$$"
 }
 
+func (scope *Scope) QuotedTableName() (name string) {
+	return scope.Search.tableName
+}
+
+func (scope *Scope) Raw(sql string) *Scope {
+	scope.SQL = strings.Replace(sql, "$$$", "?", -1)
+	return scope
+}
+
 func (scope *Scope) CombinedConditionSql() string {
 	whereSQL := scope.whereSQL()
 	if scope.Search.raw {
@@ -104,21 +113,12 @@ func (scope *Scope) rows() (*sql.Rows, error) {
 	return result.Rows, result.Error
 }
 
-func (scope *Scope) QuotedTableName() (name string) {
-	return scope.Search.tableName
-}
-
 func (scope *Scope) prepareQuerySQL() {
 	if scope.Search.raw {
 		scope.Raw(scope.CombinedConditionSql())
 	} else {
 		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSQL(), scope.QuotedTableName(), scope.CombinedConditionSql()))
 	}
-}
-
-func (scope *Scope) Raw(sql string) *Scope {
-	scope.SQL = strings.Replace(sql, "$$$", "?", -1)
-	return scope
 }
 
 func (scope *Scope) groupSQL() string {

@@ -9,7 +9,7 @@ type search struct {
 	joinConditions   []map[string]interface{}
 	//initAttrs        []interface{}
 	//assignAttrs      []interface{}
-	selects map[string]interface{}
+	selects string
 	omits   []string
 	orders  []interface{}
 	//preload          []searchPreload
@@ -52,8 +52,8 @@ func (s *search) Order(value interface{}, reorder ...bool) *search {
 	return s
 }
 
-func (s *search) Select(query interface{}, args ...interface{}) *search {
-	s.selects = map[string]interface{}{"query": query, "args": args}
+func (s *search) Select(query string) *search {
+	s.selects = query
 	return s
 }
 
