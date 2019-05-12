@@ -2,6 +2,7 @@ package zorm
 
 import (
 	"database/sql"
+	"errors"
 	"sync"
 )
 
@@ -35,8 +36,18 @@ type DB struct {
 }
 
 func Open(driver string, args ...interface{}) (*DB, error) {
+	if len(args) == 0 {
+		err := errors.New("invalid database source")
+		return nil, err
+	}
 	var source string
 	var dbSQL SQLCommon
+	switch args[0].(type) {
+	case string:
+		source = args[0].(string)
+	default:
+		return nil, errors.New("invalid database source")
+	}
 	dbSQL, err := sql.Open(driver, source)
 	if err != nil {
 		return nil, err
@@ -134,7 +145,7 @@ func (s *DB) Joins(query string, args ...interface{}) *DB {
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
-	return s.clone().search.Raw(true).Where(sql, values ...).db
+	return s.clone().search.Raw(true).Where(sql, values...).db
 }
 
 func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
@@ -151,7 +162,7 @@ func (s *DB) Unscoped() *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
-	return newScope.Set("gorm:order_by_primary_key", "ASC").db
+	return newScope.Set("gorm:order_by_primary_key", "ASC").callCallbacks(s.callbacks.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
@@ -161,7 +172,7 @@ func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.NewScope(out).db
+	return s.NewScope(out).callCallbacks(s.callbacks.queries).db
 }
 
 func (s *DB) Scan(dest interface{}) *DB {

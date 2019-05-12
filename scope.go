@@ -20,6 +20,13 @@ type Scope struct {
 	fields     *[]*Field
 }
 
+func (scope *Scope) IndirectValue() reflect.Value {
+	return indirect(reflect.ValueOf(scope.Value))
+}
+
+func (scope *Scope) HasError() bool {
+	return scope.db.Error != nil
+}
 func (scope *Scope) Set(name string, value interface{}) *Scope {
 	scope.db.InstantSet(name, value)
 	return scope
@@ -34,6 +41,20 @@ func (scope *Scope) Err(err error) error {
 		scope.db.AddError(err)
 	}
 	return err
+}
+
+func (scope *Scope) New(value interface{}) *Scope {
+	return &Scope{db: scope.NewDB(), Search: &search{}, Value: value}
+}
+
+func (scope *Scope) NewDB() *DB {
+	if scope.db != nil {
+		db := scope.db.clone()
+		db.search = nil
+		db.Value = nil
+		return db
+	}
+	return nil
 }
 
 func (scope *Scope) InstanceID() string {
@@ -51,6 +72,37 @@ func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 	return scope.Get(name + scope.InstanceID())
 }
 
+func (scope *Scope) TableName() string {
+	if scope.Search != nil && len(scope.Search.tableName) > 0 {
+		return scope.Search.tableName
+	}
+	return ""
+}
+
+func (scope *Scope) Fields() []*Field {
+	if scope.fields == nil {
+		var (
+			fields             []*Field
+			indirectScopeValue = scope.IndirectValue()
+			isStruct           = indirectScopeValue.Kind() == reflect.Struct
+		)
+		for _, structField := range scope.GetModelStruct().StructFields {
+			if isStruct {
+				fieldValue := indirectScopeValue
+				name := structField.Name
+				if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+					fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+				}
+				fieldValue = reflect.Indirect(fieldValue).FieldByName(name)
+				fields = append(fields, &Field{StructField: structField, Field: fieldValue})
+			} else {
+				fields = append(fields, &Field{StructField: structField, IsBlank: true})
+			}
+		}
+		scope.fields = &fields
+	}
+	return *scope.fields
+}
 func (scope *Scope) AddToVars(value interface{}) string {
 	if expr, ok := value.(*expr); ok {
 		exp := expr.expr
@@ -61,7 +113,10 @@ func (scope *Scope) AddToVars(value interface{}) string {
 }
 
 func (scope *Scope) QuotedTableName() (name string) {
-	return scope.Search.tableName
+	if scope.Search != nil && len(scope.Search.tableName) > 0 {
+		return scope.Search.tableName
+	}
+	return scope.GetModelStruct().TableName()
 }
 
 func (scope *Scope) Raw(sql string) *Scope {
@@ -84,7 +139,7 @@ var (
 	countingQueryRegexp = regexp.MustCompile("(?i)^count(.+)$")
 )
 
-func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
+func (scope *Scope) callCallbacks(funcs []func(s *Scope)) *Scope {
 	defer func() {
 		if err := recover(); err != nil {
 			if db, ok := scope.db.db.(sqlTx); ok {
@@ -94,7 +149,7 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 		}
 	}()
 	for _, f := range funcs {
-		(*f)(scope)
+		f(scope)
 	}
 	return scope
 }
@@ -309,5 +364,51 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 	str = buff.String()
 
 	return
+
+}
+
+func indirect(reflectValue reflect.Value) reflect.Value {
+	for reflectValue.Kind() == reflect.Ptr {
+		reflectValue = reflectValue.Elem()
+	}
+	return reflectValue
+}
+
+func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
+	var (
+		ignored      interface{}
+		values       = make([]interface{}, len(columns))
+		selectFields []*Field
+		resetFields  = map[int]*Field{}
+	)
+
+	for index, column := range columns {
+		values[index] = &ignored
+		selectFields = fields
+
+		for _, field := range selectFields {
+			if field.DBName == column {
+				if field.Field.Kind() == reflect.Ptr {
+					values[index] = field.Field.Addr().Interface()
+				} else {
+					reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
+					reflectValue.Elem().Set(field.Field.Addr())
+					values[index] = reflectValue.Interface()
+					resetFields[index] = field
+				}
+				if field.IsNormal {
+					break
+				}
+			}
+		}
+	}
+
+	scope.Err(rows.Scan(values...))
+
+	for index, field := range resetFields {
+		if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
+			field.Field.Set(v)
+		}
+	}
 
 }
