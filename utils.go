@@ -31,3 +31,19 @@ func toTableName(rawTableName string) string {
 	}
 	return tableName
 }
+
+func toColumnName(name string) string {
+	data := make([]byte, 0, len(name)*2)
+	j := false
+	for i := 0; i < len(name); i++ {
+		d := name[i]
+		if i > 0 && d >= 'A' && d <= 'Z' && j {
+			data = append(data, '_')
+		}
+		if d != '_' {
+			j = true
+		}
+		data = append(data, d)
+	}
+	return strings.ToLower(string(data[:]))
+}

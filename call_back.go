@@ -3,7 +3,9 @@ package zorm
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 )
 
 var DefaultCallback = &Callback{}
@@ -19,6 +21,9 @@ type Callback struct {
 
 func init() {
 	DefaultCallback.queries = append(DefaultCallback.queries, queryCallBack)
+	DefaultCallback.creates = append(DefaultCallback.creates, insertCallBack)
+	DefaultCallback.updates = append(DefaultCallback.updates, updateCallBack)
+	DefaultCallback.deletes = append(DefaultCallback.deletes, deleteCallBack)
 }
 
 type CallbackProcesser struct {
@@ -95,8 +100,48 @@ func queryCallBack(scope *Scope) {
 
 }
 
-func insertCallBack(scope *Scope) {}
+func insertCallBack(scope *Scope) {
+	if !scope.HasError() {
+		var (
+			columns      []string
+			placeholders []string
+		)
+		for _, field := range scope.Fields() {
+			if !field.IsPrimaryKey {
+				columns = append(columns, field.DBName)
+				placeholders = append(placeholders, scope.AddToVars(field.Field.Interface()))
+			}
+		}
+		scope.Raw(fmt.Sprintf("INSERT INTO %v (%v) VALUES (%v)",
+			scope.QuotedTableName(),
+			strings.Join(columns, ","),
+			strings.Join(placeholders, ","),
+		))
+		if result, err := scope.db.db.Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+			scope.db.RowsAffected, _ = result.RowsAffected()
+		}
+	}
+}
 
-func updateCallBack(scope *Scope) {}
+func updateCallBack(scope *Scope) {
+	if !scope.HasError() {
+		var sqls []string
+		for _, field := range scope.Fields() {
+			if !field.IsPrimaryKey && field.IsNormal {
+				sqls = append(sqls, fmt.Sprintf("%v = %v", field.DBName, scope.AddToVars(field.Field.Interface())))
+			}
+		}
+		if len(sqls) > 0 {
+			scope.Raw(fmt.Sprintf("UPDATE %v SET %v %v",
+				scope.QuotedTableName(),
+				strings.Join(sqls, ", "),
+				scope.CombinedConditionSql(),
+			))
+		}
+		if result, err := scope.db.db.Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+			scope.db.RowsAffected, _ = result.RowsAffected()
+		}
+	}
+}
 
 func deleteCallBack(scope *Scope) {}

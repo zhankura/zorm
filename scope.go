@@ -72,13 +72,6 @@ func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 	return scope.Get(name + scope.InstanceID())
 }
 
-func (scope *Scope) TableName() string {
-	if scope.Search != nil && len(scope.Search.tableName) > 0 {
-		return scope.Search.tableName
-	}
-	return ""
-}
-
 func (scope *Scope) Fields() []*Field {
 	if scope.fields == nil {
 		var (

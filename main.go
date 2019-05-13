@@ -80,10 +80,11 @@ func (s *DB) NewScope(value interface{}) *Scope {
 
 func (s *DB) clone() *DB {
 	db := &DB{
-		db:     s.db,
-		Error:  s.Error,
-		logger: s.logger,
-		Value:  s.Value,
+		db:        s.db,
+		Error:     s.Error,
+		logger:    s.logger,
+		Value:     s.Value,
+		callbacks: s.callbacks,
 	}
 
 	s.values.Range(func(k, v interface{}) bool {
@@ -172,9 +173,19 @@ func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.NewScope(out).callCallbacks(s.callbacks.queries).db
+	scope := s.NewScope(out)
+	return scope.callCallbacks(s.callbacks.queries).db
 }
 
+func (s *DB) Insert(value interface{}) *DB {
+	scope := s.NewScope(value)
+	return scope.callCallbacks(s.callbacks.creates).db
+}
+
+func (s *DB) Update(value interface{}) *DB {
+	scope := s.NewScope(value)
+	return scope.callCallbacks(s.callbacks.updates).db
+}
 func (s *DB) Scan(dest interface{}) *DB {
 	return s.NewScope(s.Value).Set("gorm:query_destination", dest).db
 }

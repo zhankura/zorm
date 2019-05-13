@@ -82,8 +82,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			if value, ok := field.TagSettingGet("COLUMN"); ok {
 				field.DBName = value
 			} else {
-				field.DBName = ToColumnName(fieldStruct.Name)
+				field.DBName = toColumnName(fieldStruct.Name)
 			}
+			field.IsNormal = true
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
 		}
 	}
@@ -106,20 +107,4 @@ func parseTagSetting(tags reflect.StructTag) map[string]string {
 		}
 	}
 	return setting
-}
-
-func ToColumnName(name string) string {
-	data := make([]byte, 0, len(name)*2)
-	j := false
-	for i := 0; i < len(name); i++ {
-		d := name[i]
-		if i > 0 && d >= 'A' && d <= 'Z' && j {
-			data = append(data, '_')
-		}
-		if d != '_' {
-			j = true
-		}
-		data = append(data, d)
-	}
-	return strings.ToLower(string(data[:]))
 }
