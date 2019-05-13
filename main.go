@@ -190,6 +190,11 @@ func (s *DB) Scan(dest interface{}) *DB {
 	return s.NewScope(s.Value).Set("gorm:query_destination", dest).db
 }
 
+func (s *DB) Delete(value interface{}) *DB {
+	scope := s.NewScope(value)
+	return scope.callCallbacks(s.callbacks.deletes).db
+}
+
 func (s *DB) Row() *sql.Row {
 	return s.NewScope(s.Value).row()
 }

@@ -144,4 +144,13 @@ func updateCallBack(scope *Scope) {
 	}
 }
 
-func deleteCallBack(scope *Scope) {}
+func deleteCallBack(scope *Scope) {
+	if !scope.HasError() {
+		scope.Raw(fmt.Sprintf("DELETE FROM %v %v",
+			scope.QuotedTableName(),
+			scope.CombinedConditionSql()))
+	}
+	if result, err := scope.db.db.Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+		scope.db.RowsAffected, _ = result.RowsAffected()
+	}
+}
