@@ -31,3 +31,22 @@ func main(){
     newDB.Table("tests").Where("id in (?)", []uint{1,2}).Delete()
 }
 ```
+
+### 事务
+
+```golang
+type Test struct {
+    ID uint `primary_key`
+    Name string `zorm:"type:varchar(32);not null"`
+    Out string `zorm:"type:varchar(128);not null"`
+}
+func main(){
+    newDB, err := zorm.Open("mysql", "user:password@/database?charset=utf8&parseTime=true&loc=Asia%2FShanghai")
+    tx := newDB.Begin()
+    tx.Where("id = ?", 1).Find(&test)
+    tx.Where("id = ?", 1).Delete()
+    if err := tx.Commit();err != nil {
+        tx.Rollback()
+    }
+}
+```

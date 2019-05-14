@@ -11,9 +11,6 @@ type SQLCommon interface {
 	Prepare(query string) (*sql.Stmt, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryRow(query string, args ...interface{}) *sql.Row
-}
-
-type sqlDb interface {
 	Begin() (*sql.Tx, error)
 }
 
@@ -150,6 +147,30 @@ func (s *DB) Joins(query string, args ...interface{}) *DB {
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
 	return s.clone().search.Raw(true).Where(sql, values...).db
+}
+
+func (s *DB) Begin() *DB {
+	c := s.clone()
+	tx, err := c.db.Begin()
+	c.db = interface{}(tx).(SQLCommon)
+	c.AddError(err)
+	return c
+}
+
+func (s *DB) Commit() *DB {
+	var emptySQLTx *sql.Tx
+	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
+		s.AddError(db.Commit())
+	}
+	return s
+}
+
+func (s *DB) Rollback() *DB {
+	var emptySQLTx *sql.Tx
+	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
+		s.AddError(db.Rollback())
+	}
+	return s
 }
 
 func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
