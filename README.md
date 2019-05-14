@@ -27,7 +27,7 @@ func main(){
         Out:"This is a test",
     }
     newDB.Insert(test)
-    newDB.Where("id in ?", []uint{1,2}).Update(test)
-    newDB.Table("tests").Where("id in ?", []uint{1,2}).Delete()
+    newDB.Where("id in (?)", []uint{1,2}).Update(test)
+    newDB.Table("tests").Where("id in (?)", []uint{1,2}).Delete()
 }
 ```
