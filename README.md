@@ -11,7 +11,7 @@ type Test struct {
     Out string `zorm:"type:varchar(128);not null"`
 }
 func main(){
-    newDB, err := zorm.Open("mysql", "root:wshwoaini@/auto_fertilizer?charset=utf8&parseTime=true&loc=Asia%2FShanghai")
+    newDB, err := zorm.Open("mysql", "user:password@/database?charset=utf8&parseTime=true&loc=Asia%2FShanghai")
     if err != nil {
         fmt.Println(err)
     }
