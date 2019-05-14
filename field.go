@@ -25,6 +25,10 @@ type StructField struct {
 	tagSettingsLock sync.RWMutex
 }
 
+func (field *Field) Set(value interface{}) {
+	field.Field.Set(reflect.ValueOf(value))
+}
+
 func (sf *StructField) TagSettingSet(key, val string) {
 	sf.tagSettingsLock.Lock()
 	defer sf.tagSettingsLock.Unlock()

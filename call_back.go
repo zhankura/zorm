@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 var DefaultCallback = &Callback{}
@@ -106,6 +107,13 @@ func insertCallBack(scope *Scope) {
 			columns      []string
 			placeholders []string
 		)
+		now := time.Now()
+		if updatedAtField, hasUpdatedAtField := scope.FieldByName("UpdatedAt"); hasUpdatedAtField {
+			updatedAtField.Set(now)
+		}
+		if insertedAtField, hasInsertedAtField := scope.FieldByName("UpdatedAt"); hasInsertedAtField {
+			insertedAtField.Set(now)
+		}
 		for _, field := range scope.Fields() {
 			if !field.IsPrimaryKey {
 				columns = append(columns, field.DBName)
@@ -126,6 +134,10 @@ func insertCallBack(scope *Scope) {
 func updateCallBack(scope *Scope) {
 	if !scope.HasError() {
 		var sqls []string
+		now := time.Now()
+		if updatedAtField, hasUpdatedAtField := scope.FieldByName("UpdatedAt"); hasUpdatedAtField {
+			updatedAtField.Set(now)
+		}
 		for _, field := range scope.Fields() {
 			if !field.IsPrimaryKey && field.IsNormal {
 				sqls = append(sqls, fmt.Sprintf("%v = %v", field.DBName, scope.AddToVars(field.Field.Interface())))
@@ -146,9 +158,20 @@ func updateCallBack(scope *Scope) {
 
 func deleteCallBack(scope *Scope) {
 	if !scope.HasError() {
-		scope.Raw(fmt.Sprintf("DELETE FROM %v %v",
-			scope.QuotedTableName(),
-			scope.CombinedConditionSql()))
+		deletedAtField, hasDeletedAtField := scope.FieldByName("DeletedAt")
+		if scope.Search.Unscoped && hasDeletedAtField {
+			scope.Raw(fmt.Sprintf("UPDATE %v SET %v=%v %v",
+				scope.QuotedTableName(),
+				deletedAtField.DBName,
+				time.Now(),
+				scope.CombinedConditionSql(),
+			))
+		} else {
+			scope.Raw(fmt.Sprintf("DELETE FROM %v %v",
+				scope.QuotedTableName(),
+				scope.CombinedConditionSql()),
+			)
+		}
 	}
 	if result, err := scope.db.db.Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 		scope.db.RowsAffected, _ = result.RowsAffected()

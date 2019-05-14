@@ -96,6 +96,16 @@ func (scope *Scope) Fields() []*Field {
 	}
 	return *scope.fields
 }
+
+func (scope *Scope) FieldByName(fieldName string) (*Field, bool) {
+	quoteFieldName := toColumnName(fieldName)
+	for _, field := range scope.Fields() {
+		if field.Name == quoteFieldName {
+			return field, true
+		}
+	}
+	return nil, false
+}
 func (scope *Scope) AddToVars(value interface{}) string {
 	if expr, ok := value.(*expr); ok {
 		exp := expr.expr
@@ -197,7 +207,9 @@ func (scope *Scope) havingSQL() string {
 
 func (scope *Scope) whereSQL() (sql string) {
 	var (
-		andConditions, orConditions []string
+		andConditions, orConditions       []string
+		deletedAtField, hasDeletedAtField = scope.FieldByName("DeletedAt")
+		quoteTableName                    = scope.QuotedTableName()
 	)
 
 	for _, clause := range scope.Search.whereConditions {
@@ -216,6 +228,11 @@ func (scope *Scope) whereSQL() (sql string) {
 		if sql := scope.buildCondition(clause, false); sql != "" {
 			andConditions = append(andConditions, sql)
 		}
+	}
+
+	if scope.Search.Unscoped && hasDeletedAtField {
+		sql := fmt.Sprintf("%v.%v IS NULL", quoteTableName, deletedAtField.DBName)
+		andConditions = append(andConditions, sql)
 	}
 
 	orSQL := strings.Join(orConditions, " OR ")
