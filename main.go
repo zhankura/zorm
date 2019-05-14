@@ -133,6 +133,9 @@ func (s *DB) Omit(columns ...string) *DB {
 	return s.clone().search.Omit(columns...).db
 }
 
+func (s *DB) Table(tableName string) *DB {
+	return s.clone().search.Table(tableName).db
+}
 func (s *DB) Group(query string) *DB {
 	return s.clone().search.Group(query).db
 }
@@ -190,8 +193,8 @@ func (s *DB) Scan(dest interface{}) *DB {
 	return s.NewScope(s.Value).Set("gorm:query_destination", dest).db
 }
 
-func (s *DB) Delete(value interface{}) *DB {
-	scope := s.NewScope(value)
+func (s *DB) Delete() *DB {
+	scope := s.NewScope(nil)
 	return scope.callCallbacks(s.callbacks.deletes).db
 }
 
