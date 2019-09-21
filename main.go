@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"sync"
+	"time"
 )
 
 type SQLCommon interface {
@@ -24,13 +25,19 @@ type DB struct {
 	Error        error
 	RowsAffected int64
 
-	db     SQLCommon
-	logger logger
+	db      SQLCommon
+	logger  logger
+	logMode int
 
 	search    *search
 	values    sync.Map
 	callbacks *Callback
 }
+
+const (
+	defaultLogMode = 1
+	noLogMode      = 2
+)
 
 func Open(driver string, args ...interface{}) (*DB, error) {
 	if len(args) == 0 {
@@ -96,6 +103,14 @@ func (s *DB) clone() *DB {
 	}
 	db.search.db = db
 	return db
+}
+
+func (s *DB) SetLoggerMode(loggerMode int) {
+	s.logMode = loggerMode
+}
+
+func (s *DB) SetLogger(logger Logger) {
+	s.logger = logger
 }
 
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
@@ -255,4 +270,14 @@ func (s *DB) Get(name string) (interface{}, bool) {
 
 func (s *DB) AddError(err error) error {
 	return err
+}
+
+func (s *DB) print(values ...interface{}) {
+	s.logger.Print(values)
+}
+
+func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
+	if s.logMode == defaultLogMode {
+		s.print("sql", sql, vars, s.RowsAffected)
+	}
 }

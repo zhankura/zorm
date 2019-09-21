@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Scope struct {
@@ -136,8 +137,8 @@ func (scope *Scope) CombinedConditionSql() string {
 }
 
 var (
-	columnRegexp        = regexp.MustCompile("^[a-zA-Z\\d]+(\\.[a-zA-Z\\d]+)*$") // only match string like `name`, `users.name`
-	isNumberRegexp      = regexp.MustCompile("^\\s*\\d+\\s*$")                   // match if string is number
+	columnRegexp        = regexp.MustCompile("^[a-zA-Z\\d]+(\\.[a-zA-Z\\d]+)*$")
+	isNumberRegexp      = regexp.MustCompile("^\\s*\\d+\\s*$")
 	comparisonRegexp    = regexp.MustCompile("(?i) (=|<>|(>|<)(=?)|LIKE|IS|IN) ")
 	countingQueryRegexp = regexp.MustCompile("(?i)^count(.+)$")
 )
@@ -421,4 +422,11 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		}
 	}
 
+}
+
+func (scope *Scope) trace() {
+	t := time.Now()
+	if len(scope.SQL) > 0 {
+		scope.db.slog(scope.SQL, t, scope.SQLVars...)
+	}
 }

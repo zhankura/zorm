@@ -48,6 +48,7 @@ type RowsQueryResult struct {
 }
 
 func queryCallBack(scope *Scope) {
+	defer scope.trace()
 	var (
 		isSlice, isPtr bool
 		resultType     reflect.Type
@@ -102,6 +103,7 @@ func queryCallBack(scope *Scope) {
 }
 
 func insertCallBack(scope *Scope) {
+	defer scope.trace()
 	if !scope.HasError() {
 		var (
 			columns      []string
@@ -132,6 +134,7 @@ func insertCallBack(scope *Scope) {
 }
 
 func updateCallBack(scope *Scope) {
+	defer scope.trace()
 	if !scope.HasError() {
 		var sqls []string
 		now := time.Now()
@@ -157,6 +160,7 @@ func updateCallBack(scope *Scope) {
 }
 
 func deleteCallBack(scope *Scope) {
+	defer scope.trace()
 	if !scope.HasError() {
 		deletedAtField, hasDeletedAtField := scope.FieldByName("DeletedAt")
 		if scope.Search.Unscoped && hasDeletedAtField {
