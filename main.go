@@ -26,7 +26,7 @@ type DB struct {
 	RowsAffected int64
 
 	db      SQLCommon
-	logger  logger
+	logger  Logger
 	logMode int
 
 	search    *search
