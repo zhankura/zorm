@@ -31,7 +31,7 @@ type DB struct {
 
 	search    *search
 	values    sync.Map
-	callbacks *Callback
+	Callbacks *Callback
 }
 
 const (
@@ -58,7 +58,7 @@ func Open(driver string, args ...interface{}) (*DB, error) {
 	}
 	db := &DB{
 		db:        dbSQL,
-		callbacks: DefaultCallback,
+		Callbacks: DefaultCallback,
 	}
 	// Send a ping to make sure the database connection is alive.
 	if d, ok := dbSQL.(*sql.DB); ok {
@@ -88,7 +88,7 @@ func (s *DB) clone() *DB {
 		Error:     s.Error,
 		logger:    s.logger,
 		Value:     s.Value,
-		callbacks: s.callbacks,
+		Callbacks: s.Callbacks,
 	}
 
 	s.values.Range(func(k, v interface{}) bool {
@@ -202,7 +202,7 @@ func (s *DB) Unscoped() *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
-	return newScope.Set("gorm:order_by_primary_key", "ASC").callCallbacks(s.callbacks.queries).db
+	return newScope.Set("gorm:order_by_primary_key", "ASC").callCallbacks(s.Callbacks.Queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
@@ -213,17 +213,17 @@ func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	scope := s.NewScope(out)
-	return scope.callCallbacks(s.callbacks.queries).db
+	return scope.callCallbacks(s.Callbacks.Queries).db
 }
 
 func (s *DB) Insert(value interface{}) *DB {
 	scope := s.NewScope(value)
-	return scope.callCallbacks(s.callbacks.creates).db
+	return scope.callCallbacks(s.Callbacks.Creates).db
 }
 
 func (s *DB) Update(value interface{}) *DB {
 	scope := s.NewScope(value)
-	return scope.callCallbacks(s.callbacks.updates).db
+	return scope.callCallbacks(s.Callbacks.Updates).db
 }
 func (s *DB) Scan(dest interface{}) *DB {
 	return s.NewScope(s.Value).Set("gorm:query_destination", dest).db
@@ -231,7 +231,7 @@ func (s *DB) Scan(dest interface{}) *DB {
 
 func (s *DB) Delete() *DB {
 	scope := s.NewScope(nil)
-	return scope.callCallbacks(s.callbacks.deletes).db
+	return scope.callCallbacks(s.Callbacks.Deletes).db
 }
 
 func (s *DB) Row() *sql.Row {

@@ -161,14 +161,14 @@ func (scope *Scope) callCallbacks(funcs []func(s *Scope)) *Scope {
 func (scope *Scope) row() *sql.Row {
 	result := &RowQueryResult{}
 	scope.InstanceSet("row_query_result", result)
-	scope.callCallbacks(scope.db.callbacks.rowQueries)
+	scope.callCallbacks(scope.db.Callbacks.RowQueries)
 	return result.Row
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
 	result := &RowsQueryResult{}
 	scope.InstanceSet("row_query_result", result)
-	scope.callCallbacks(scope.db.callbacks.rowQueries)
+	scope.callCallbacks(scope.db.Callbacks.RowQueries)
 	return result.Rows, result.Error
 }
 

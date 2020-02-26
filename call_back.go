@@ -12,19 +12,19 @@ import (
 var DefaultCallback = &Callback{}
 
 type Callback struct {
-	creates    []func(scope *Scope)
-	updates    []func(scope *Scope)
-	deletes    []func(scope *Scope)
-	queries    []func(scope *Scope)
-	rowQueries []func(scope *Scope)
+	Creates    []func(scope *Scope)
+	Updates    []func(scope *Scope)
+	Deletes    []func(scope *Scope)
+	Queries    []func(scope *Scope)
+	RowQueries []func(scope *Scope)
 	processors []*Callback
 }
 
 func init() {
-	DefaultCallback.queries = append(DefaultCallback.queries, queryCallBack)
-	DefaultCallback.creates = append(DefaultCallback.creates, insertCallBack)
-	DefaultCallback.updates = append(DefaultCallback.updates, updateCallBack)
-	DefaultCallback.deletes = append(DefaultCallback.deletes, deleteCallBack)
+	DefaultCallback.Queries = append(DefaultCallback.Queries, queryCallBack)
+	DefaultCallback.Creates = append(DefaultCallback.Creates, insertCallBack)
+	DefaultCallback.Updates = append(DefaultCallback.Updates, updateCallBack)
+	DefaultCallback.Deletes = append(DefaultCallback.Deletes, deleteCallBack)
 }
 
 type CallbackProcesser struct {
